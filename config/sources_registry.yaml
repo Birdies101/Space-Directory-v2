@@ -1,0 +1,163 @@
+# Source registry. One entry per connector. Claude Code: VERIFY each endpoint,
+# auth method, rate limit and terms of use against current docs before coding the connector.
+# discovery_channel maps to the six channels used for capture–recapture.
+
+sources:
+  # ── Channel: federal_awards ─────────────────────────────────────────
+  - key: usaspending
+    name: USAspending.gov API
+    url: https://api.usaspending.gov
+    auth: none
+    tier: T1
+    discovery_channel: federal_awards
+    mode: bulk_backfill + daily_incremental
+    query_notes: >
+      Award search for NASA (agency 080), Dept of the Air Force/Space Force, NOAA, DARPA, NSF, and DIU.
+      Use space-related PSC/NAICS codes (e.g. NAICS 336414, 336415, 336419, 517410, 927110) plus keyword filters.
+      Keep the award ID, recipient UEI, description, amounts and period of performance.
+  - key: sbir
+    name: SBIR.gov awards API
+    url: https://www.sbir.gov/api
+    auth: none
+    tier: T1
+    discovery_channel: federal_awards
+    mode: bulk_backfill + weekly
+    query_notes: >
+      Agencies NASA, DOD (USAF/SpaceWERX, SDA, MDA, DARPA), NOAA, NSF. Keyword-filter abstracts for space terms.
+      Likely the richest early-stage source.
+  - key: sam_entity
+    name: SAM.gov Entity Management API
+    url: https://open.gsa.gov/api/entity-api/
+    auth: api_key (free, SAM.gov account)
+    tier: T1
+    discovery_channel: federal_awards
+    mode: lookup (verifies us_basis = sam_registered; pulls UEI, CAGE, address)
+  - key: sam_opportunities
+    name: SAM.gov Contract Opportunities API
+    url: https://open.gsa.gov/api/get-opportunities-public-api/
+    auth: api_key
+    tier: T1
+    discovery_channel: federal_awards
+    mode: daily_incremental
+    query_notes: Procurement notices and award notices for space programs; modification histories feed milestones.
+  - key: spacewerx_diu
+    name: SpaceWERX / DIU / DARPA award announcements
+    url: (newsroom pages + RSS)
+    auth: none
+    tier: T1
+    discovery_channel: federal_awards
+    mode: daily_rss
+
+  # ── Channel: nasa_agency ────────────────────────────────────────────
+  - key: techport
+    name: NASA TechPort API
+    url: https://techport.nasa.gov/help/api
+    auth: token (check current access procedure)
+    tier: T1
+    discovery_channel: nasa_agency
+    mode: bulk_backfill + monthly
+  - key: nasa_programs
+    name: NASA commercial program awardee lists
+    url: CLPS, Commercial LEO Destinations, Tipping Point, ACO, Flight Opportunities, NextSTEP pages
+    auth: none
+    tier: T1
+    discovery_channel: nasa_agency
+    mode: monthly_scrape
+    note: These lists also serve as frozen BENCHMARKS for recall (freeze before collection).
+  - key: nasa_news
+    name: NASA news releases RSS
+    tier: T1
+    discovery_channel: nasa_agency
+    mode: daily_rss
+
+  # ── Channel: launch_infra ───────────────────────────────────────────
+  - key: faa_licenses
+    name: FAA commercial space licenses, permits and approvals
+    url: https://www.faa.gov/space/licenses
+    auth: none
+    tier: T1
+    discovery_channel: launch_infra
+    mode: weekly_scrape
+    note: Licenses are evidence; follow to the vehicle/site project.
+  - key: faa_spaceports
+    name: FAA licensed spaceports
+    tier: T1
+    discovery_channel: launch_infra
+    mode: monthly_scrape
+  - key: gcat
+    name: GCAT (Jonathan McDowell) launch & satellite catalogs
+    url: https://planet4589.org/space/gcat/
+    auth: none
+    tier: T1
+    discovery_channel: launch_infra
+    mode: weekly_download (TSV)
+    note: Best evidence for S3/S4 (launched, on orbit). Check attribution/terms.
+  - key: celestrak_satcat
+    name: CelesTrak SATCAT
+    url: https://celestrak.org/satcat/
+    auth: none
+    tier: T1
+    discovery_channel: launch_infra
+    mode: weekly_download
+  - key: spacetrack
+    name: Space-Track.org
+    auth: account (user agreement restricts redistribution — verification only)
+    tier: T1
+    discovery_channel: launch_infra
+    mode: lookup
+
+  # ── Channel: satcom_systems ─────────────────────────────────────────
+  - key: fcc_icfs
+    name: FCC IBFS/ICFS space station and earth station filings
+    url: https://fcc.report/ibfs/ and the FCC ICFS public search
+    auth: none
+    tier: T1
+    discovery_channel: satcom_systems
+    mode: weekly_scrape
+    query_notes: SAT-LOA, SAT-MOD, SAT-AMD, SES applications; Part 25 and Part 5 experimental licenses (OET).
+  - key: noaa_crsra
+    name: NOAA Commercial Remote Sensing Regulatory Affairs licensees
+    url: https://www.nesdis.noaa.gov/commercial-space/regulatory-affairs
+    auth: none
+    tier: T1
+    discovery_channel: satcom_systems
+    mode: monthly_scrape
+    note: Authoritative list of U.S. Earth-observation systems.
+
+  # ── Channel: company_disclosures ────────────────────────────────────
+  - key: sec_efts
+    name: SEC EDGAR full-text search + submissions API
+    url: https://efts.sec.gov/LATEST/search-index and https://data.sec.gov
+    auth: none (must send a descriptive User-Agent with contact email)
+    tier: T1
+    discovery_channel: company_disclosures
+    mode: weekly
+    query_notes: 10-K/10-Q/8-K/S-1 for space terms; Form D filings for private raises (industry + keyword).
+  - key: company_newsrooms
+    name: Company newsroom RSS/HTML (one entry per org, auto-discovered)
+    tier: T2
+    discovery_channel: company_disclosures
+    mode: daily_rss
+  - key: venture_data
+    name: Crunchbase / PitchBook (if licensed)
+    auth: paid
+    tier: T4
+    discovery_channel: company_disclosures
+    mode: discovery_only (do not republish)
+
+  # ── Channel: associations_specialist ────────────────────────────────
+  - key: trade_press
+    name: Specialist press RSS (SpaceNews, Payload, Via Satellite, SpaceflightNow, Breaking Defense space, NASASpaceflight, Space.com)
+    tier: T3
+    discovery_channel: associations_specialist
+    mode: daily_rss
+  - key: associations
+    name: Association and cluster directories (CSF, SIA, Space Foundation, state aerospace councils, accelerators e.g. Techstars/Starburst, university tech-transfer offices)
+    tier: T4
+    discovery_channel: associations_specialist
+    mode: quarterly_scrape (leads only)
+  - key: submissions
+    name: Public submission / correction form
+    tier: T4
+    discovery_channel: associations_specialist
+    mode: continuous
